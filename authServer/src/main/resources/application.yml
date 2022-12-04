@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/account?serverTimezone=UTC&characterEncoding=UTF-8
+    username: root
+    password: pass
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate.format_sql: true
+      dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+  sql:
+    init:
+      mode: never
+
+
+
+security:
+  jjwt:
+    secret: "secret"
+    expiration: 1000000
