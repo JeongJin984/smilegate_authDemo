@@ -38,36 +38,9 @@ public class BasicAuthConverter implements AuthenticationConverter {
 
     @Override
     public UsernamePasswordAuthenticationToken convert(HttpServletRequest request) {
-        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header == null) {
-            return null;
-        }
-        header = header.trim();
-        if (!StringUtils.startsWithIgnoreCase(header, AUTHENTICATION_SCHEME_BASIC)) {
-            return null;
-        }
-        if (header.equalsIgnoreCase(AUTHENTICATION_SCHEME_BASIC)) {
-            throw new BadCredentialsException("Empty basic authentication token");
-        }
-        byte[] base64Token = header.substring(6).getBytes(StandardCharsets.UTF_8);
-        byte[] decoded = decode(base64Token);
-        String token = new String(decoded, getCredentialsCharset(request));
-        int delim = token.indexOf(":");
-        if (delim == -1) {
-            throw new BadCredentialsException("Invalid basic authentication token");
-        }
         UsernamePasswordAuthenticationToken result = UsernamePasswordAuthenticationToken
-                .unauthenticated(token.substring(0, delim), token.substring(delim + 1));
+                .unauthenticated(request.getParameter("username"), request.getParameter("password"));
         result.setDetails(this.authDetailsSource.buildDetails(request));
         return result;
-    }
-
-    private byte[] decode(byte[] base64Token) {
-        try {
-            return Base64.getDecoder().decode(base64Token);
-        }
-        catch (IllegalArgumentException ex) {
-            throw new BadCredentialsException("Failed to decode basic authentication token");
-        }
     }
 }

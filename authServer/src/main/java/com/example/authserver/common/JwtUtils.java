@@ -1,14 +1,9 @@
 package com.example.authserver.common;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
-import lombok.Getter;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -16,18 +11,19 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.stream.Collectors;
 
-@Service
-@Getter
 public class JwtUtils {
     public static final String AUTHORITIES_KEY = "permissions";
 
-    public static final String secret = "secret";
+    public static final String accessTokenSecret = "secretsecretsecretsecretsecretsecret";
+    public static final String accessTokenExpirationTime = "99";
+    public static final SecretKey secretKey = Keys.hmacShaKeyFor(accessTokenSecret.getBytes(StandardCharsets.UTF_8));
 
-    public static final String expirationTime = "100000";
 
-    public static final SecretKey secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    public static final String refreshTokenExpirationTime = "9999";
+    public static final String refreshTokenSecret = "refreshrefreshrefreshrefreshrefreshrefresh";
+    public static final SecretKey refreshSecretKey = Keys.hmacShaKeyFor(refreshTokenSecret.getBytes(StandardCharsets.UTF_8));
 
-    public static String createToken(Authentication authentication) {
+    public static String createAccessToken(Authentication authentication) {
         String username = authentication.getName();
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Claims claims = Jwts.claims().setSubject(username);
@@ -36,15 +32,52 @@ public class JwtUtils {
                     , authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(",")));
         }
 
-        long expirationTimeLong = Long.parseLong(expirationTime);
         final Date createdDate = new Date();
-        final Date expirationDate = new Date(createdDate.getTime() + expirationTimeLong);
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(username)
+                .setIssuedAt(createdDate)
+                .setExpiration(new Date(createdDate.getTime() + Long.parseLong(accessTokenExpirationTime)))
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public static boolean isNonExpiredAccessToken(String token) {
+        try {
+            Jws<Claims> claims = Jwts
+                    .parserBuilder().setSigningKey(secretKey).build()
+                    .parseClaimsJws(token);
+
+            return claims.getBody().getExpiration().before(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new JwtException(e.getMessage());
+        }
+    }
+
+
+    public static String createRefreshToken(String username) {
+        Claims claims = Jwts.claims().setSubject(username);
+
+        final Date createdDate = new Date();
+        final Date expirationDate = new Date(createdDate.getTime() + Long.parseLong(refreshTokenExpirationTime));
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(createdDate)
                 .setExpiration(expirationDate)
-                .signWith(secretKey)
+                .signWith(refreshSecretKey)
                 .compact();
+    }
+
+    public static boolean isNonExpiredRefreshToken(String token) {
+        try {
+            Jws<Claims> claims = Jwts
+                    .parserBuilder().setSigningKey(refreshSecretKey).build()
+                    .parseClaimsJws(token);
+
+            return claims.getBody().getExpiration().before(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new JwtException(e.getMessage());
+        }
     }
 }

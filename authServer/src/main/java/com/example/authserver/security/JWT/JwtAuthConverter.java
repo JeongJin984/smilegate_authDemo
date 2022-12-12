@@ -5,6 +5,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -26,9 +27,6 @@ import static com.example.authserver.common.JwtUtils.AUTHORITIES_KEY;
 import static com.example.authserver.common.JwtUtils.secretKey;
 
 public class JwtAuthConverter implements AuthenticationConverter {
-    public static final String AUTHENTICATION_SCHEME_JWT = "Bearer";
-
-    private final Charset credentialsCharset = StandardCharsets.UTF_8;
 
     private final AuthenticationDetailsSource<HttpServletRequest, ?> authDetailsSource;
 
@@ -43,28 +41,32 @@ public class JwtAuthConverter implements AuthenticationConverter {
 
     @Override
     public Authentication convert(HttpServletRequest request) {
-        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header == null) {
+        Cookie[] cookies = request.getCookies();
+
+        if (cookies == null || cookies.length == 0) {
             return null;
         }
-        header = header.trim();
-        if (!StringUtils.startsWithIgnoreCase(header, AUTHENTICATION_SCHEME_JWT)) {
+
+        String accessToken = "";
+        for(Cookie cookie : cookies) {
+            if(cookie.getName().equals("accessToken")) {
+                accessToken = cookie.getValue();
+            }
+        }
+
+        if(StringUtils.hasText(accessToken)) {
+            Claims claims = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(accessToken).getBody();
+
+            Object authoritiesClaim = claims.get(AUTHORITIES_KEY);
+
+            Collection<? extends GrantedAuthority> authorities = authoritiesClaim == null ? AuthorityUtils.NO_AUTHORITIES
+                    : AuthorityUtils.commaSeparatedStringToAuthorityList(authoritiesClaim.toString());
+
+            JwtAuthToken result = new JwtAuthToken(claims, authorities, accessToken);
+            result.setDetails(this.authDetailsSource.buildDetails(request));
+            return result;
+        } else {
             return null;
         }
-        if (header.equalsIgnoreCase(AUTHENTICATION_SCHEME_JWT)) {
-            throw new BadCredentialsException("Empty basic authentication token");
-        }
-        String token = header.substring(7);
-
-        Claims claims = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token).getBody();
-
-        Object authoritiesClaim = claims.get(AUTHORITIES_KEY);
-
-        Collection<? extends GrantedAuthority> authorities = authoritiesClaim == null ? AuthorityUtils.NO_AUTHORITIES
-                : AuthorityUtils.commaSeparatedStringToAuthorityList(authoritiesClaim.toString());
-
-        JwtAuthToken result = new JwtAuthToken(claims, authorities, token);
-        result.setDetails(this.authDetailsSource.buildDetails(request));
-        return result;
     }
 }

@@ -1,9 +1,11 @@
 package com.example.authserver.security.JWT;
 
+import com.example.authserver.common.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,6 +26,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
+
+import static com.example.authserver.common.JwtUtils.isNonExpiredAccessToken;
+import static com.example.authserver.common.JwtUtils.isNonExpiredRefreshToken;
 
 @Component
 public class JwtAuthFilter extends GenericFilterBean implements ApplicationEventPublisherAware {
@@ -50,12 +55,42 @@ public class JwtAuthFilter extends GenericFilterBean implements ApplicationEvent
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         doFilter((HttpServletRequest) request, (HttpServletResponse) response, chain);
-
     }
 
     private void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+        String accessToken = "";
+        String refreshToken = "";
+
+        for(Cookie cookie : request.getCookies()) {
+            if(cookie.getName().equals("accessToken")) {
+                accessToken = cookie.getValue();
+            } else if(cookie.getName().equals("refreshToken")) {
+                refreshToken = cookie.getValue();
+            }
+        }
+
         Authentication jwtAuthToken = jwtAuthConverter.convert(request);
+
+        if(!isNonExpiredAccessToken(accessToken) && isNonExpiredRefreshToken(refreshToken)) {
+            Cookie accessTokenCookie = new Cookie("accessToken", JwtUtils.createAccessToken(jwtAuthToken));
+            accessTokenCookie.setPath("/");
+            accessTokenCookie.setSecure(false);
+            accessTokenCookie.setHttpOnly(true);
+
+            response.addCookie(accessTokenCookie);
+
+            jwtAuthToken = jwtAuthConverter.convert(request);
+        } else if(!isNonExpiredAccessToken(accessToken) && !isNonExpiredRefreshToken(refreshToken)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         try {
+            if (jwtAuthToken == null) {
+                chain.doFilter(request, response);
+                return;
+            }
+
             jwtAuthToken = authenticationManager.authenticate(jwtAuthToken);
             SecurityContext context = this.securityContextHolderStrategy.createEmptyContext();
             context.setAuthentication(jwtAuthToken);

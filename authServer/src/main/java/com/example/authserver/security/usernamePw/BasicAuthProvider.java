@@ -44,6 +44,11 @@ public class BasicAuthProvider extends AbstractAuthProvider {
         prepareTimingAttackProtection();
         try {
             UserDetails loadedUser = this.userDetailsService.loadUserByUsername(username);
+
+            if(!passwordEncoder.matches(authentication.getCredentials().toString(), loadedUser.getPassword())) {
+                throw new InternalAuthenticationServiceException("Credential InCorrect");
+            }
+
             if (loadedUser == null) {
                 throw new InternalAuthenticationServiceException(
                         "UserDetailsService returned null, which is an interface contract violation");

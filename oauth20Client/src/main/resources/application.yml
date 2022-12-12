@@ -1,0 +1,26 @@
+server:
+  port: 8081
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration: # 클라이언트 설정
+          keycloack:
+            authorizationGrantType: authorization_code                      # OAUTH20 권한 부여 타입
+            clientId: oauth-client-app                                      # 서비스 공급자에 등록된 Client 아이다
+            clientName: oauth2-client-app                                   # Client 이름
+            clientSecret: LoGfkEFD09Q1bWo54sH0HlaAON9Qxsn4                  # 서비스 공급자에 등록된 비밀번호
+            redirectUri: http://localhost:8081/login/oauth2/code/keycloack  # 인가서버가 권한 코드 부여 후 Redirect
+            clientAuthenticationMethod: client_secret_post                  # 클라이언트 자격증명 전송 방식
+            scope:
+              - openid
+              - email
+        provider: # 공급자 설정
+          keycloack:
+            authorizationUri: http://localhost:8080/realms/oauth2/protocol/openid-connect/auth  # OAuth20 권한 코드 부여 API
+            issuerUri: http://localhost:8080/realms/oauth2                                      # 서비스 공급자 위치
+            jwkSetUri: http://localhost:8080/realms/oauth2/protocol/openid-connect/certs
+            tokenUri: http://localhost:8080/realms/oauth2/protocol/openid-connect/token
+            userInfoUri: http://localhost:8080/realms/oauth2/protocol/openid-connect/userinfo
+            userNameAttribute: preferred_username                                               # 사용자명 추출 클레임 명

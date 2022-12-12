@@ -1,21 +1,18 @@
 package com.example.authserver.security.usernamePw;
 
 import com.example.authserver.common.JwtUtils;
-import com.example.authserver.security.JWT.JwtAuthConverter;
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.log.LogMessage;
-import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
@@ -23,18 +20,19 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.stream.Collectors;
+import java.util.UUID;
+
+import static com.example.authserver.common.JwtUtils.secretKey;
 
 public class BasicAuthFilter extends OncePerRequestFilter {
 
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
             .getContextHolderStrategy();
     BasicAuthConverter authenticationConverter = new BasicAuthConverter();
-    JwtAuthConverter jwtAuthConverter = new JwtAuthConverter();
     private final AuthenticationManager authenticationManager;
     private AuthenticationEntryPoint authenticationEntryPoint;
     private final SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
@@ -47,7 +45,7 @@ public class BasicAuthFilter extends OncePerRequestFilter {
     }
 
     public BasicAuthFilter(AuthenticationManager authenticationManager,
-                           AuthenticationEntryPoint authenticationEntryPoint) {
+                            AuthenticationEntryPoint authenticationEntryPoint) {
         Assert.notNull(authenticationManager, "authenticationManager cannot be null");
         Assert.notNull(authenticationEntryPoint, "authenticationEntryPoint cannot be null");
 
@@ -59,13 +57,15 @@ public class BasicAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         try {
             UsernamePasswordAuthenticationToken authRequest = this.authenticationConverter.convert(request);
-            if (authRequest == null) {
-                this.logger.trace("Did not process authentication request since failed to find "
-                        + "username and password in Basic Authorization header");
-                chain.doFilter(request, response);
-                return;
-            }
             String username = authRequest.getName();
+            if(!StringUtils.hasText(username)) {
+                Cookie[] cookies = request.getCookies();
+                for(Cookie cookie : cookies) {
+                    if(cookie.getName().equals("accessToken")) {
+                        username = Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(cookie.getValue()).getBody().getSubject();
+                    }
+                }
+            }
             this.logger.trace(LogMessage.format("Found username '%s' in Basic Authorization header", username));
             if (authenticationIsRequired(username)) {
                 Authentication authResult = this.authenticationManager.authenticate(authRequest);
@@ -95,9 +95,28 @@ public class BasicAuthFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    protected void onSuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-                                              Authentication authResult) throws IOException {
-        response.setHeader(HttpHeaders.AUTHORIZATION, JwtUtils.createToken(authResult));
+    protected void onSuccessfulAuthentication(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authResult
+    ) throws IOException {
+        Cookie isAuthenticated = new Cookie("robotics", UUID.randomUUID().toString());
+        isAuthenticated.setPath("/");
+        isAuthenticated.setSecure(false);
+        isAuthenticated.setHttpOnly(false);
+
+        Cookie accessTokenCookie = new Cookie("accessToken", JwtUtils.createAccessToken(authResult));
+        accessTokenCookie.setPath("/");
+        accessTokenCookie.setSecure(false);
+        accessTokenCookie.setHttpOnly(true);
+
+        Cookie refreshTokenCookie = new Cookie("refreshToken", JwtUtils.createRefreshToken(authResult.getName()));
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setSecure(false);
+        refreshTokenCookie.setHttpOnly(true);
+
+        response.addCookie(accessTokenCookie);
+        response.addCookie(refreshTokenCookie);
     }
 
     protected void onUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
