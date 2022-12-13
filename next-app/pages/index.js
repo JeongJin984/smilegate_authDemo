@@ -49,15 +49,6 @@ export default function Home() {
   }
 
   const onClickKeyCloack = (e) => {
-    const authorizationRequest = {
-      authorizationUrl: "http://localhost:8080/realms/oauth2/protocol/openid-connect/auth",
-      scope: ["openid", "email"],
-      clientId: "oauth2-client-app",
-      redirectUrl: "http://localhost:8081/login/oauth2/code/keycloack",
-      responseType: "code",
-      state: "asdfasdfasdf"
-    }
-
     const stateArray = new Uint32Array(32);
     crypto.getRandomValues(stateArray);
     const state = Buffer.from(stateArray).toString('base64')

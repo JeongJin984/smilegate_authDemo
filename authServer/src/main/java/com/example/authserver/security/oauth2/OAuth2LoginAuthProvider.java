@@ -2,7 +2,6 @@ package com.example.authserver.security.oauth2;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -28,20 +27,30 @@ public class OAuth2LoginAuthProvider implements AuthenticationProvider {
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        OAuth2AuthorizationCodeAuthenticationToken authenticationToken =
+                (OAuth2AuthorizationCodeAuthenticationToken) authentication;
+
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
 
-        params.add("grant_type", "a");
-        params.add("code", "a");
-        params.add("redirect_uri", "a");
-        params.add("client_id", "a");
-        params.add("client_secret", "a");
+        params.add("grant_type", authenticationToken.getGrantType());
+        params.add("code", authenticationToken.getAuthorizationCode());
+        params.add("redirect_uri", authenticationToken.getRedirectUri());
+        params.add("client_id", authenticationToken.getClientId());
+        params.add("client_secret", authenticationToken.getClientSecret());
 
         HttpHeaders header = new HttpHeaders();
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, header);
 
         OAuth2AccessTokenResponse oAuth2AuthResponse = getAccessToken(request).getBody();
+
+
         assert oAuth2AuthResponse != null;
-        return new OAuth2AuthorizationCodeAuthenticationToken("a", oAuth2AuthResponse.accessToken(), oAuth2AuthResponse.refreshToken(), "a");
+
+        return new OAuth2AuthorizationCodeAuthenticationToken(
+                authenticationToken,
+                oAuth2AuthResponse.accessToken(),
+                oAuth2AuthResponse.refreshToken()
+        );
     }
 
     @Override

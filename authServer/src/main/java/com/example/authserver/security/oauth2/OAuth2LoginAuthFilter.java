@@ -20,7 +20,21 @@ public class OAuth2LoginAuthFilter extends AbstractAuthenticationProcessingFilte
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException, IOException, ServletException {
-        oAuth2LoginAuthProvider.authenticate()
+        String clientId = request.getParameter("client_id");
+        String clientSecret = request.getParameter("client_secret");
+        String grantType = request.getParameter("grant_type");
+        String authCode = request.getParameter("code");
+        String redirectUri = request.getParameter("redirect_uri");
+
+        OAuth2AuthorizationCodeAuthenticationToken token = new OAuth2AuthorizationCodeAuthenticationToken(
+                clientId,
+                clientSecret,
+                grantType,
+                authCode,
+                redirectUri
+        );
+
+        oAuth2LoginAuthProvider.authenticate(token);
         return null;
     }
 }
