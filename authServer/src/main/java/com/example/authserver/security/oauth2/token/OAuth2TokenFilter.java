@@ -21,6 +21,9 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
+
+import static java.lang.Long.parseLong;
 
 public class OAuth2TokenFilter extends OncePerRequestFilter {
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
@@ -73,24 +76,31 @@ public class OAuth2TokenFilter extends OncePerRequestFilter {
         platformCookie.setHttpOnly(false);
 
         Cookie accessCookie = new Cookie("accessToken", token.getAccessToken());
-        platformCookie.setPath("/");
-        platformCookie.setSecure(false);
-        platformCookie.setHttpOnly(false);
+        accessCookie.setPath("/");
+        accessCookie.setSecure(false);
+        accessCookie.setHttpOnly(true);
 
         Cookie refreshCookie = new Cookie("refreshToken", token.getRefreshToken());
-        platformCookie.setPath("/");
-        platformCookie.setSecure(false);
-        platformCookie.setHttpOnly(false);
+        refreshCookie.setPath("/");
+        refreshCookie.setSecure(false);
+        refreshCookie.setHttpOnly(true);
 
         Cookie oidcCookie = new Cookie("idToken", token.getIdToken());
         oidcCookie.setPath("/");
         oidcCookie.setSecure(false);
-        oidcCookie.setHttpOnly(false);
+        oidcCookie.setHttpOnly(true);
+
+        Instant instant = Instant.now().plusSeconds(parseLong(token.getExpiresIn()));
+        Cookie expireAt = new Cookie("expireAt", instant.toString());
+        expireAt.setPath("/");
+        expireAt.setSecure(false);
+        expireAt.setHttpOnly(true);
 
         response.addCookie(platformCookie);
         response.addCookie(accessCookie);
         response.addCookie(refreshCookie);
         response.addCookie(oidcCookie);
+        response.addCookie(expireAt);
 
         response.sendRedirect("http://localhost:3000");
     }

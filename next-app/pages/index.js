@@ -17,17 +17,17 @@ export default function Home() {
 
   useEffect(() => {
     console.log(cookies)
-    // if(cookies.platform) {
-    //   axios.defaults.withCredentials = true
+    if(cookies.platform) {
+      axios.defaults.withCredentials = true
 
-    //   axios({
-    //     method: "get",
-    //     url: "http://localhost:8080/"
-    //   }).then(response => {
-    //     alert(response.data)
-    //     setUsername("success")
-    //   })
-    // }
+      axios({
+        method: "get",
+        url: "http://localhost:8082/"
+      }).then(response => {
+        alert(response.data)
+        setUsername("success")
+      })
+    }
   }, [cookies])
 
   const onSubmit = (e) => {
