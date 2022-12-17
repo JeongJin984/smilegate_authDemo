@@ -16,6 +16,10 @@ spring:
       mode: never
   session:
     storage-type: redis
+  redis:
+    host: localhost
+    password:
+    port: 6379
   security:
     oauth2:
       client:

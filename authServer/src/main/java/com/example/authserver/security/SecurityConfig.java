@@ -2,6 +2,7 @@ package com.example.authserver.security;
 
 import com.example.authserver.data.repository.AccountInfoRepository;
 import com.example.authserver.security.oauth2.code.OAuth2CodeFilter;
+import com.example.authserver.security.oauth2.token.OAuth2TokenFilter;
 import com.example.authserver.security.usernamePw.BasicAuthFilter;
 import com.example.authserver.security.usernamePw.BasicAuthProvider;
 import com.example.authserver.security.usernamePw.BasicUserDetailsService;
@@ -10,9 +11,11 @@ import jakarta.servlet.Filter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
@@ -90,7 +93,7 @@ public class SecurityConfig {
             HttpSecurity http,
             AuthenticationManager authenticationManager,
             CorsConfigurationSource corsConfigurationSource,
-            DefaultOAuth2AuthorizedClientManager oAuth2AuthorizedClientManager
+            RedisTemplate<String, Object> redisTemplate
     ) throws Exception {
         http
                 .authorizeHttpRequests(authorize ->
@@ -105,7 +108,8 @@ public class SecurityConfig {
                 .cors().configurationSource(corsConfigurationSource)
                 .and()
                 .addFilterAt(new BasicAuthFilter(authenticationManager), RememberMeAuthenticationFilter.class)
-                .addFilterAfter(new OAuth2CodeFilter(authenticationManager), BasicAuthFilter.class);
+                .addFilterAfter(new OAuth2TokenFilter(redisTemplate), BasicAuthFilter.class)
+                .addFilterAfter(new OAuth2CodeFilter(redisTemplate), OAuth2TokenFilter.class);
         return http.build();
     }
 }
