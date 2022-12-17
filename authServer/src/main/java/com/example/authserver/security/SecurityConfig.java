@@ -1,28 +1,40 @@
 package com.example.authserver.security;
 
 import com.example.authserver.data.repository.AccountInfoRepository;
-import com.example.authserver.security.JWT.JwtAuthFilter;
-import com.example.authserver.security.JWT.JwtAuthProvider;
+import com.example.authserver.security.oauth2.code.OAuth2CodeFilter;
 import com.example.authserver.security.usernamePw.BasicAuthFilter;
 import com.example.authserver.security.usernamePw.BasicAuthProvider;
 import com.example.authserver.security.usernamePw.BasicUserDetailsService;
+import jakarta.persistence.Basic;
+import jakarta.servlet.Filter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.AuthenticatedPrincipalOAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationCodeGrantFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -34,6 +46,7 @@ import java.util.*;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
     @Bean
     public AuthenticationManager authenticationManager(
             AccountInfoRepository accountInfoRepository
@@ -52,11 +65,8 @@ public class SecurityConfig {
         });
         basicProvider.setUserDetailsService(new BasicUserDetailsService(accountInfoRepository));
 
-        JwtAuthProvider jwtProvider = new JwtAuthProvider();
-
         List<AuthenticationProvider> providers = new ArrayList<>();
         providers.add(basicProvider);
-        providers.add(jwtProvider);
         return new ProviderManager(providers);
     }
 
@@ -65,6 +75,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.addAllowedOrigin("http://localhost:3000");
+        configuration.addAllowedOrigin("http://localhost:8082");
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
         configuration.setAllowCredentials(true);
@@ -78,11 +89,14 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(
             HttpSecurity http,
             AuthenticationManager authenticationManager,
-            CorsConfigurationSource corsConfigurationSource
+            CorsConfigurationSource corsConfigurationSource,
+            DefaultOAuth2AuthorizedClientManager oAuth2AuthorizedClientManager
     ) throws Exception {
         http
-                .authorizeHttpRequests(authorize -> authorize
-                        .anyRequest().authenticated()
+                .authorizeHttpRequests(authorize ->
+                        authorize
+                                .requestMatchers("/jwt/valid/").permitAll()
+                                .anyRequest().authenticated()
                 )
                 .csrf().disable()
                 .httpBasic().disable()
@@ -90,15 +104,8 @@ public class SecurityConfig {
                 .rememberMe().disable()
                 .cors().configurationSource(corsConfigurationSource)
                 .and()
-                .exceptionHandling().authenticationEntryPoint(new AuthenticationEntryPoint() {
-                    @Override
-                    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-
-                    }
-                })
-                .and()
                 .addFilterAt(new BasicAuthFilter(authenticationManager), RememberMeAuthenticationFilter.class)
-                .addFilterBefore(new JwtAuthFilter(authenticationManager), BasicAuthFilter.class);
+                .addFilterAfter(new OAuth2CodeFilter(authenticationManager), BasicAuthFilter.class);
         return http.build();
     }
 }

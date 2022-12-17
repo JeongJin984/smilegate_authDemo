@@ -1,6 +1,5 @@
-package com.example.authserver.security.JWT;
+package com.example.resourceserver.security.JWT;
 
-import com.example.authserver.common.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -19,19 +18,17 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.filter.GenericFilterBean;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
-import static com.example.authserver.common.JwtUtils.isNonExpiredAccessToken;
-import static com.example.authserver.common.JwtUtils.isNonExpiredRefreshToken;
-
-@Component
-public class JwtAuthFilter extends GenericFilterBean implements ApplicationEventPublisherAware {
+public class JwtAuthFilter extends OncePerRequestFilter implements ApplicationEventPublisherAware {
     private SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
             .getContextHolderStrategy();
 
@@ -45,46 +42,33 @@ public class JwtAuthFilter extends GenericFilterBean implements ApplicationEvent
 
     private AuthenticationManager authenticationManager;
 
-    private RememberMeServices rememberMeServices;
+
 
     public JwtAuthFilter(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
-        this.rememberMeServices = null;
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        doFilter((HttpServletRequest) request, (HttpServletResponse) response, chain);
-    }
-
-    private void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+        String loginPlatform = "";
         String accessToken = "";
         String refreshToken = "";
-
         for(Cookie cookie : request.getCookies()) {
-            if(cookie.getName().equals("accessToken")) {
+            if(cookie.getName().equals("platform")) {
+                loginPlatform = cookie.getValue();
+            } else if(cookie.getName().equals("accessToken")) {
                 accessToken = cookie.getValue();
             } else if(cookie.getName().equals("refreshToken")) {
                 refreshToken = cookie.getValue();
             }
         }
 
-        Authentication jwtAuthToken = jwtAuthConverter.convert(request);
-
-        if(!isNonExpiredAccessToken(accessToken) && isNonExpiredRefreshToken(refreshToken)) {
-            Cookie accessTokenCookie = new Cookie("accessToken", JwtUtils.createAccessToken(jwtAuthToken));
-            accessTokenCookie.setPath("/");
-            accessTokenCookie.setSecure(false);
-            accessTokenCookie.setHttpOnly(true);
-
-            response.addCookie(accessTokenCookie);
-
-            jwtAuthToken = jwtAuthConverter.convert(request);
-        } else if(!isNonExpiredAccessToken(accessToken) && !isNonExpiredRefreshToken(refreshToken)) {
+        if(!loginPlatform.equals("JWT")) {
             chain.doFilter(request, response);
             return;
         }
 
+        Authentication jwtAuthToken = jwtAuthConverter.convert(request);
         try {
             if (jwtAuthToken == null) {
                 chain.doFilter(request, response);
@@ -109,16 +93,12 @@ public class JwtAuthFilter extends GenericFilterBean implements ApplicationEvent
                 this.successHandler.onAuthenticationSuccess(request, response, jwtAuthToken);
             }
         } catch (AuthenticationException ex) {
-            this.logger.debug(LogMessage
-                            .format("SecurityContextHolder not populated with remember-me token, as AuthenticationManager "
-                                    + "rejected Authentication returned by RememberMeServices: '%s'; "
-                                    + "invalidating remember-me token", jwtAuthToken),
-                    ex);
             this.logger.debug("Interactive login attempt was unsuccessful.");
             onLoginFail(request, response);
         }
         chain.doFilter(request, response);
     }
+
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {

@@ -13,20 +13,21 @@ export default function Home() {
   const router = useRouter()
   const [cookies, setCookie] = useCookies();
   const [username, setUsername] = useState("")
+  const [message, setMessage] = useState("")
 
   useEffect(() => {
     console.log(cookies)
-    if(cookies.robotics) {
-      axios.defaults.withCredentials = true
+    // if(cookies.platform) {
+    //   axios.defaults.withCredentials = true
 
-      axios({
-        method: "get",
-        url: "http://localhost:8080/"
-      }).then(response => {
-        alert(response.data)
-        setUsername("success")
-      })
-    }
+    //   axios({
+    //     method: "get",
+    //     url: "http://localhost:8080/"
+    //   }).then(response => {
+    //     alert(response.data)
+    //     setUsername("success")
+    //   })
+    // }
   }, [cookies])
 
   const onSubmit = (e) => {
@@ -40,7 +41,7 @@ export default function Home() {
 
     axios({
       method: "post",
-      url: "http://localhost:8080/",
+      url: "http://localhost:8081/login/jwt/",
       data: bodyFormData
     }).then(response => {
       alert(response.data)
@@ -57,14 +58,26 @@ export default function Home() {
     crypto.getRandomValues(nonceArray);
     const nonce = Buffer.from(nonceArray).toString('base64')
 
-    router.push(`http://localhost:8080/realms/oauth2/protocol/openid-connect/auth?response_type=code&client_id=oauth-client-app&scope=openid%20email&state=${state}&redirect_uri=http://localhost:8081/login/oauth2/code/keycloack&nonce=${nonce}`)
+    router.push("http://localhost:8081/login/oauth2/keycloack/")
+  }
+
+  const onClickHello = (e) => {
+    axios({
+      method: "get",
+      url: "http://localhost:8082/"
+    }).then(response => {
+      alert(response.data)
+      setMessage(response.data)
+    })
   }
 
   return (
     <div className={styles.container}>
       {
         username ?
-          <div>Login Success</div>:
+          message ? 
+          <div>{message}</div> :
+          <Button onClick={onClickHello}>Hello</Button>:
           <Form onSubmit={onSubmit}>
             <Form.Group className="mb-3" controlId="formBasicUsername">
               <Form.Label>Email Username</Form.Label>

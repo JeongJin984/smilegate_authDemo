@@ -14,8 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public class BasicAuthConverter implements AuthenticationConverter {
-    public static final String AUTHENTICATION_SCHEME_BASIC = "Basic";
-
     private Charset credentialsCharset = StandardCharsets.UTF_8;
 
     private AuthenticationDetailsSource<HttpServletRequest, ?> authDetailsSource;

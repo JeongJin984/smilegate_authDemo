@@ -1,4 +1,4 @@
-package com.example.authserver.security.JWT;
+package com.example.resourceserver.security.JWT;
 
 import io.jsonwebtoken.Claims;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -13,9 +13,9 @@ public class JwtAuthToken extends AbstractAuthenticationToken {
 
     private Object credentials;
 
-    public JwtAuthToken(Claims claims, Collection<? extends GrantedAuthority> authorities, String token) {
+    public JwtAuthToken(String username, Collection<? extends GrantedAuthority> authorities, String token) {
         super(AuthorityUtils.NO_AUTHORITIES);
-        this.principal = new User(claims.getSubject(), "", authorities);
+        this.principal = new User(username, "", authorities);
         this.credentials = token;
         setAuthenticated(true);
     }
@@ -28,6 +28,10 @@ public class JwtAuthToken extends AbstractAuthenticationToken {
     @Override
     public Object getPrincipal() {
         return this.principal;
+    }
+
+    public void setCredentials(Object credentials) {
+        this.credentials = credentials;
     }
 
     @Override
