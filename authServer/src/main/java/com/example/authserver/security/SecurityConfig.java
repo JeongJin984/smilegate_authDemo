@@ -98,7 +98,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize ->
                         authorize
-                                .requestMatchers("/jwt/valid/").permitAll()
+                                .requestMatchers("/jwt/valid/", "/signup").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .csrf().disable()

@@ -14,6 +14,8 @@ export default function Home() {
   const [cookies, setCookie] = useCookies();
   const [username, setUsername] = useState("")
   const [message, setMessage] = useState("")
+  const [password, setPassword] = useState("")
+  const [passwordCheck, setPasswordCheck] = useState("")
 
   useEffect(() => {
     console.log(cookies)
@@ -30,7 +32,7 @@ export default function Home() {
     }
   }, [cookies])
 
-  const onSubmit = (e) => {
+  const onSubmitLogin = (e) => {
     e.preventDefault()
 
     let bodyFormData = new FormData()
@@ -50,14 +52,6 @@ export default function Home() {
   }
 
   const onClickKeyCloack = (e) => {
-    const stateArray = new Uint32Array(32);
-    crypto.getRandomValues(stateArray);
-    const state = Buffer.from(stateArray).toString('base64')
-    
-    const nonceArray = new Uint32Array(32);
-    crypto.getRandomValues(nonceArray);
-    const nonce = Buffer.from(nonceArray).toString('base64')
-
     router.push("http://localhost:8081/login/oauth2/keycloack/")
   }
 
@@ -71,6 +65,25 @@ export default function Home() {
     })
   }
 
+  const onChangePassword = (e) => {
+    console.log(e.target.value);
+    setPassword(e.target.value)
+  }
+
+  const onChangePasswordCheck = (e) => {
+    console.log(e.target.value);
+    setPasswordCheck(e.target.value)
+  }
+
+  const onSubmitSignup = (e) => {
+    e.preventDefault()
+    if(password !== passwordCheck) {
+      alert("비밀번호가 일치하지 않습니다.")
+    } else {
+      alert("축하합니다!")
+    }
+  }
+
   return (
     <div className={styles.container}>
       {
@@ -78,28 +91,48 @@ export default function Home() {
           message ? 
           <div>{message}</div> :
           <Button onClick={onClickHello}>Hello</Button>:
-          <Form onSubmit={onSubmit}>
-            <Form.Group className="mb-3" controlId="formBasicUsername">
-              <Form.Label>Email Username</Form.Label>
-              <Form.Control type="text" placeholder="Enter username" />
-              <Form.Text className="text-muted">
-                We'll never share your email with anyone else.
-              </Form.Text>
-            </Form.Group>
+          <div>
+            <Form onSubmit={onSubmitLogin}>
+              <Form.Group className="mb-3" controlId="formBasicUsername">
+                <Form.Label>Email Username</Form.Label>
+                <Form.Control type="text" placeholder="Enter username" />
+                <Form.Text className="text-muted">
+                  We'll never share your email with anyone else.
+                </Form.Text>
+              </Form.Group>
 
-            <Form.Group className="mb-3" controlId="formBasicPassword">
-              <Form.Label>Password</Form.Label>
-              <Form.Control type="password" placeholder="Password" />
-            </Form.Group>
-            <Button variant="primary" type="submit">
-              Submit
-            </Button>
-            <Button variant="primary">
-              SignIn
-            </Button>
-          </Form>
+              <Form.Group className="mb-3" controlId="formBasicPassword">
+                <Form.Label>Password</Form.Label>
+                <Form.Control type="password" placeholder="Password" />
+              </Form.Group>
+              <Button variant="primary" type="submit">
+                Submit
+              </Button>
+            </Form>
+            <Button onClick={onClickKeyCloack}>KeyCloack</Button>
+            <hr/>
+            <Form onSubmit={onSubmitSignup}>
+              <Form.Group className="mb-3" controlId="formSigninUsername">
+                <Form.Label>Username</Form.Label>
+                <Form.Control type="text" placeholder="Enter Username" />
+                <Form.Text className="text-muted">
+                  We'll never share your email with anyone else.
+                </Form.Text>
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="formSigninPassword">
+                <Form.Label>Password</Form.Label>
+                <Form.Control onChange={onChangePassword} value={password} type="password" placeholder="비밀번호" />
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="formSigninPasswordCheck">
+                <Form.Label>Password</Form.Label>
+                <Form.Control onChange={onChangePasswordCheck} value={passwordCheck} isInvalid={password !== passwordCheck} type="password" placeholder="비밀번호 확인" />
+              </Form.Group>
+              <Button variant="primary" type="submit">
+                회원가입
+              </Button>
+            </Form>
+          </div>
       }
-      <Button onClick={onClickKeyCloack}>KeyCloack</Button>
     </div>
   )
 }
