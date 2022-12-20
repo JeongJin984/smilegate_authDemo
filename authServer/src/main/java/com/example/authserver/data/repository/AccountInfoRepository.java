@@ -10,4 +10,5 @@ import org.springframework.stereotype.Repository;
 public interface AccountInfoRepository extends CrudRepository<AccountInfo, Long>, AccountInfoRepositoryCustom {
     @Query("select ai from AccountInfo ai where ai.username = :username")
     AccountInfo findAccountInfoByUsername(@Param("username") String username);
+    AccountInfo save(AccountInfo accountInfo);
 }

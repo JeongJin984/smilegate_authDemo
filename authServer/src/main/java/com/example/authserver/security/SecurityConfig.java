@@ -24,6 +24,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
@@ -49,23 +50,18 @@ import java.util.*;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Bean
     public AuthenticationManager authenticationManager(
-            AccountInfoRepository accountInfoRepository
+            AccountInfoRepository accountInfoRepository,
+            PasswordEncoder passwordEncoder
     ) throws Exception {
         BasicAuthProvider basicProvider = new BasicAuthProvider();
-        basicProvider.setPasswordEncoder(new PasswordEncoder() {
-            @Override
-            public String encode(CharSequence rawPassword) {
-                return rawPassword.toString();
-            }
-
-            @Override
-            public boolean matches(CharSequence rawPassword, String encodedPassword) {
-                return rawPassword.toString().equals(encodedPassword);
-            }
-        });
+        basicProvider.setPasswordEncoder(passwordEncoder);
         basicProvider.setUserDetailsService(new BasicUserDetailsService(accountInfoRepository));
 
         List<AuthenticationProvider> providers = new ArrayList<>();

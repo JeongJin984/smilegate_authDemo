@@ -1,14 +1,18 @@
 package com.example.authserver.api;
 
+import com.example.authserver.api.service.AccountService;
 import com.example.authserver.common.DefaultJwtBuilder;
 import com.example.authserver.common.DefaultJwtParser;
+import com.example.authserver.data.entity.AccountInfo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
@@ -20,7 +24,9 @@ import java.util.Random;
 import static com.example.authserver.common.jwtUtils.Variables.accessTokenSecretKey;
 
 @RestController
+@RequiredArgsConstructor
 public class HelloController {
+    private final AccountService accountService;
 
     @GetMapping("/login/jwt/")
     public String helloGet() {
@@ -66,6 +72,9 @@ public class HelloController {
     }
 
     @PostMapping("/signup")
-    public
+    public AccountInfo signup(@RequestBody SignupRequestBody requestBody) {
+        return accountService.signup(requestBody.username, requestBody.password);
+    }
 
+    record SignupRequestBody(String username, String password) {}
 }
