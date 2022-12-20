@@ -44,7 +44,6 @@ public class HelloController {
         String refreshToken = request.getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS);
 
         Map<String, ?> accessTokenPayload = new DefaultJwtParser().getPayload(accessToken);
-        Map<String, ?> refreshTokenPayload = new DefaultJwtParser().getPayload(refreshToken);
 
         DefaultJwtParser jwtParser = new DefaultJwtParser();
 
