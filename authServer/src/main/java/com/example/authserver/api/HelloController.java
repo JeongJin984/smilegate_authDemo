@@ -17,9 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.Map;
-import java.util.Random;
 
 import static com.example.authserver.common.jwtUtils.Variables.accessTokenSecretKey;
 
@@ -28,7 +26,7 @@ import static com.example.authserver.common.jwtUtils.Variables.accessTokenSecret
 public class HelloController {
     private final AccountService accountService;
 
-    @GetMapping("/login/jwt/")
+    @GetMapping("/hello/")
     public String helloGet() {
         return "Hello Get";
     }
@@ -70,9 +68,14 @@ public class HelloController {
          return new ResponseEntity<>(Map.of("accessToken", accessToken), HttpStatus.OK);
     }
 
-    @PostMapping("/signup")
+    @PostMapping("/signup/")
     public AccountInfo signup(@RequestBody SignupRequestBody requestBody) {
         return accountService.signup(requestBody.username, requestBody.password);
+    }
+
+    @GetMapping("/login/oauth2/code/keycloack")
+    public String redirect() {
+        return "hello";
     }
 
     record SignupRequestBody(String username, String password) {}

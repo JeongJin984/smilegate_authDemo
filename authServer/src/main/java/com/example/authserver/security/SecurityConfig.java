@@ -94,7 +94,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize ->
                         authorize
-                                .requestMatchers("/jwt/valid/", "/signup").permitAll()
+                                .requestMatchers("/jwt/valid/", "/signup/", "/hello/").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .csrf().disable()
@@ -103,7 +103,7 @@ public class SecurityConfig {
                 .rememberMe().disable()
                 .cors().configurationSource(corsConfigurationSource)
                 .and()
-                .addFilterAt(new BasicAuthFilter(authenticationManager), RememberMeAuthenticationFilter.class)
+                .addFilterAt(new BasicAuthFilter(authenticationManager, redisTemplate), RememberMeAuthenticationFilter.class)
                 .addFilterAfter(new OAuth2TokenFilter(redisTemplate), BasicAuthFilter.class)
                 .addFilterAfter(new OAuth2CodeFilter(redisTemplate), OAuth2TokenFilter.class);
         return http.build();

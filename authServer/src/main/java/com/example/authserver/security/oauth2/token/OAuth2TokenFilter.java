@@ -1,12 +1,12 @@
 package com.example.authserver.security.oauth2.token;
 
+import io.jsonwebtoken.gson.io.GsonDeserializer;
+import io.jsonwebtoken.io.Decoders;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import org.hibernate.boot.model.naming.IllegalIdentifierException;
 import org.springframework.core.log.LogMessage;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
@@ -22,6 +22,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Map;
 
 import static java.lang.Long.parseLong;
 
@@ -45,11 +47,6 @@ public class OAuth2TokenFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try {
             if(requiresAuthenticationRequestMatcher.matches(request)) {
-                String state = request.getParameter("state");
-                String stateValue = (String) redisTemplate.opsForValue().get(state);
-                assert stateValue != null;
-                redisTemplate.delete(state);
-
                 Authentication authentication = oAuth2TokenConverter.convert(request);
 
                 SecurityContext context = this.securityContextHolderStrategy.createEmptyContext();
@@ -65,6 +62,7 @@ public class OAuth2TokenFilter extends OncePerRequestFilter {
         } catch (Exception exception) {
             exception.printStackTrace();
         }
+
         filterChain.doFilter(request, response);
     }
 
@@ -90,8 +88,15 @@ public class OAuth2TokenFilter extends OncePerRequestFilter {
         oidcCookie.setSecure(false);
         oidcCookie.setHttpOnly(true);
 
-        Instant instant = Instant.now().plusSeconds(parseLong(token.getExpiresIn()));
-        Cookie expireAt = new Cookie("expireAt", instant.toString());
+        Map<String, ?> decode = new GsonDeserializer<Map<String, ?>>()
+                .deserialize(Decoders.BASE64.decode(token.getIdToken().split("\\.")[1]));
+        Cookie loginUser = new Cookie("user", decode.get("jti").toString());
+        loginUser.setPath("/");
+        loginUser.setSecure(false);
+        loginUser.setHttpOnly(true);
+
+        double d = Double.parseDouble(decode.get("exp").toString());
+        Cookie expireAt = new Cookie("expireAt", Instant.ofEpochSecond((int)d).toString());
         expireAt.setPath("/");
         expireAt.setSecure(false);
         expireAt.setHttpOnly(true);
@@ -100,6 +105,7 @@ public class OAuth2TokenFilter extends OncePerRequestFilter {
         response.addCookie(accessCookie);
         response.addCookie(refreshCookie);
         response.addCookie(oidcCookie);
+        response.addCookie(loginUser);
         response.addCookie(expireAt);
 
         response.sendRedirect("http://localhost:3000");

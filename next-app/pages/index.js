@@ -18,6 +18,7 @@ export default function Home() {
   const [passwordCheck, setPasswordCheck] = useState("")
 
   useEffect(() => {
+    /*
     console.log(cookies)
     if(cookies.platform) {
       axios.defaults.withCredentials = true
@@ -30,6 +31,7 @@ export default function Home() {
         setUsername("success")
       })
     }
+    */
   }, [cookies])
 
   const onSubmitLogin = (e) => {
@@ -80,8 +82,19 @@ export default function Home() {
     if(password !== passwordCheck) {
       alert("비밀번호가 일치하지 않습니다.")
     } else {
-      alert("축하합니다!")
+      axios({
+        method: "post",
+        url: "http://localhost:8081/signup/",
+        data: {
+          username: e.target.querySelector("#formSigninUsername").value,
+          password: password
+        }
+      })
     }
+  }
+
+  const onClickLogout = (e) => {
+
   }
 
   return (
@@ -89,7 +102,10 @@ export default function Home() {
       {
         username ?
           message ? 
-          <div>{message}</div> :
+          <div>
+            {message}
+            <Button onClick={onClickLogout}>LogOut</Button>
+          </div> :
           <Button onClick={onClickHello}>Hello</Button>:
           <div>
             <Form onSubmit={onSubmitLogin}>
@@ -100,7 +116,6 @@ export default function Home() {
                   We'll never share your email with anyone else.
                 </Form.Text>
               </Form.Group>
-
               <Form.Group className="mb-3" controlId="formBasicPassword">
                 <Form.Label>Password</Form.Label>
                 <Form.Control type="password" placeholder="Password" />

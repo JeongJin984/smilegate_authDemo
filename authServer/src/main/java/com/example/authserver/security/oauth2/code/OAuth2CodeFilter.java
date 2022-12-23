@@ -34,13 +34,12 @@ public class OAuth2CodeFilter extends OncePerRequestFilter {
             new Random().nextBytes(nonceArray);
             String nonce = Base64.getEncoder().encodeToString(nonceArray);
 
-            redisTemplate.opsForValue().set(state, "csrf");
-
             response.sendRedirect(
                     "http://localhost:8080/realms/oauth2/protocol/openid-connect/auth?" +
                             "response_type=code&client_id=oauth-client-app&scope=openid%20email&state=" + state +
                             "&redirect_uri=http://localhost:8081/login/oauth2/code/keycloack&nonce=" + nonce);
+        } else {
+            filterChain.doFilter(request, response);
         }
     }
-
 }

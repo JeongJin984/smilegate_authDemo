@@ -9,6 +9,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.log.LogMessage;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -42,24 +43,17 @@ public class BasicAuthFilter extends OncePerRequestFilter {
     private final AuthenticationManager authenticationManager;
     private AuthenticationEntryPoint authenticationEntryPoint;
     private final SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
+    private final RedisTemplate<String, Object> redisTemplate;
 
-    private RequestMatcher requiresAuthenticationRequestMatcher;
+    private final RequestMatcher requiresAuthenticationRequestMatcher;
     private boolean ignoreFailure = false;
 
-    public BasicAuthFilter(AuthenticationManager authenticationManager) {
+    public BasicAuthFilter(AuthenticationManager authenticationManager ,RedisTemplate<String, Object> redisTemplate) {
         Assert.notNull(authenticationManager, "authenticationManager cannot be null");
         this.authenticationManager = authenticationManager;
         this.ignoreFailure = true;
+        this.redisTemplate = redisTemplate;
         requiresAuthenticationRequestMatcher = new AntPathRequestMatcher("/login/jwt/*");
-    }
-
-    public BasicAuthFilter(AuthenticationManager authenticationManager,
-                            AuthenticationEntryPoint authenticationEntryPoint) {
-        Assert.notNull(authenticationManager, "authenticationManager cannot be null");
-        Assert.notNull(authenticationEntryPoint, "authenticationEntryPoint cannot be null");
-
-        this.authenticationManager = authenticationManager;
-        this.authenticationEntryPoint = authenticationEntryPoint;
     }
 
     @Override
@@ -147,9 +141,21 @@ public class BasicAuthFilter extends OncePerRequestFilter {
         refreshTokenCookie.setSecure(false);
         refreshTokenCookie.setHttpOnly(true);
 
+        Cookie loginUser = new Cookie("user", authResult.getName());
+        loginUser.setPath("/");
+        loginUser.setSecure(false);
+        loginUser.setHttpOnly(true);
+
+        Cookie expireAt = new Cookie("expireAt", (LocalDateTime.now().plusWeeks(5L)).toString());
+        expireAt.setPath("/");
+        expireAt.setSecure(false);
+        expireAt.setHttpOnly(true);
+
         response.addCookie(loginPlatform);
         response.addCookie(accessTokenCookie);
         response.addCookie(refreshTokenCookie);
+        response.addCookie(loginUser);
+        response.addCookie(expireAt);
     }
 
     protected void onUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,

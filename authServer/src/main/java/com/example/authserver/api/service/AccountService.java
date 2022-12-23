@@ -13,6 +13,7 @@ public class AccountService {
     private final PasswordEncoder passwordEncoder;
 
     public AccountInfo signup(String username, String password) {
-        return accountInfoRepository.save(new AccountInfo(username, passwordEncoder.encode(password)));
+        AccountInfo signupUser = new AccountInfo(username, passwordEncoder.encode(password));
+        return accountInfoRepository.save(signupUser);
     }
 }

@@ -40,7 +40,7 @@ spring:
             issuerUri: http://localhost:8080/realms/oauth2                                      # 서비스 공급자 위치
             jwkSetUri: http://localhost:8080/realms/oauth2/protocol/openid-connect/certs
             tokenUri: http://localhost:8080/realms/oauth2/protocol/openid-connect/token
-            userInfoUri: http://localhost:8080/realms/oauth2/protocol/openid-connect/userinfo
+            userInfoUri: fohttp://localhost:8080/realms/oauth2/protocol/openid-connect/userin
             userNameAttribute: preferred_username
 
 server:

@@ -39,7 +39,6 @@ public class OAuth2TokenConverter implements AuthenticationConverter {
                         TokenResponseBody.class
                 ).getBody();
 
-
         assert responseBody != null;
         OAuth2AuthToken oAuth2AuthToken = new OAuth2AuthToken(
                 AuthorityUtils.createAuthorityList("ROLE_USER"),
