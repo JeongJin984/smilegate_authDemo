@@ -17,7 +17,7 @@ import java.time.Instant;
 public class LogoutFilter extends OncePerRequestFilter {
 
     private final RedisTemplate<String, Object> redisTemplate;
-    private final RequestMatcher requiresAuthenticationRequestMatcher = new AntPathRequestMatcher("/logout");
+    private final RequestMatcher requiresAuthenticationRequestMatcher = new AntPathRequestMatcher("/logout/*");
 
     public LogoutFilter(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -55,35 +55,46 @@ public class LogoutFilter extends OncePerRequestFilter {
             accessTokenCookie.setPath("/");
             accessTokenCookie.setSecure(false);
             accessTokenCookie.setHttpOnly(true);
+            accessTokenCookie.setMaxAge(0);
             response.addCookie(accessTokenCookie);
 
             Cookie refreshTokenCookie = new Cookie("refreshToken", null);
             refreshTokenCookie.setPath("/");
             refreshTokenCookie.setSecure(false);
             refreshTokenCookie.setHttpOnly(true);
+            refreshTokenCookie.setMaxAge(0);
             response.addCookie(refreshTokenCookie);
 
             Cookie platformCookie = new Cookie("platform", null);
             platformCookie.setPath("/");
             platformCookie.setSecure(false);
             platformCookie.setHttpOnly(true);
+            platformCookie.setMaxAge(0);
             response.addCookie(platformCookie);
 
             Cookie userCookie = new Cookie("user", null);
             userCookie.setPath("/");
             userCookie.setSecure(false);
             userCookie.setHttpOnly(true);
+            userCookie.setMaxAge(0);
             response.addCookie(userCookie);
 
             Cookie expireAtCookie = new Cookie("expireAt", null);
             expireAtCookie.setPath("/");
             expireAtCookie.setSecure(false);
             expireAtCookie.setHttpOnly(true);
+            expireAtCookie.setMaxAge(0);
             response.addCookie(expireAtCookie);
+
+            Cookie idTokenCookie = new Cookie("idToken", null);
+            idTokenCookie.setPath("/");
+            idTokenCookie.setSecure(false);
+            idTokenCookie.setHttpOnly(true);
+            idTokenCookie.setMaxAge(0);
+            response.addCookie(idTokenCookie);
 
             redisTemplate.opsForSet().add(refreshToken, "expired");
             redisTemplate.expireAt(refreshToken, expireAt);
-
         } else {
             filterChain.doFilter(request, response);
         }

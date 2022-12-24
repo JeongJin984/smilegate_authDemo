@@ -49,7 +49,6 @@ public class OAuth2TokenConverter implements AuthenticationConverter {
                 responseBody.id_token,
                 responseBody.scope
         );
-        oAuth2AuthToken.setAuthenticated(true);
         return oAuth2AuthToken;
     }
 

@@ -7,9 +7,11 @@ import com.example.authserver.data.entity.AccountInfo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,6 +27,7 @@ import static com.example.authserver.common.jwtUtils.Variables.accessTokenSecret
 @RequiredArgsConstructor
 public class HelloController {
     private final AccountService accountService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @GetMapping("/hello/")
     public String helloGet() {
@@ -36,14 +39,19 @@ public class HelloController {
         return "Login Succeed!!!";
     }
 
-    @GetMapping("/jwt/valid/")
-    public ResponseEntity<Map<String, String>> getValidAccessToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    @GetMapping("/jwt/refresh/")
+    public ResponseEntity<Map<String, String>> getValidAccessToken(HttpServletRequest request) throws IllegalAccessException {
         String accessToken = request.getHeader(HttpHeaders.AUTHORIZATION);
         String refreshToken = request.getHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS);
 
         Map<String, ?> accessTokenPayload = new DefaultJwtParser().getPayload(accessToken);
 
         DefaultJwtParser jwtParser = new DefaultJwtParser();
+
+        String refreshTokenState = (String) redisTemplate.opsForValue().get(refreshToken);
+        if(StringUtils.hasText(refreshTokenState)) {
+            throw new IllegalAccessException("Invalid Refresh Token");
+        }
 
         if(jwtParser.isExpiredToken(accessToken)) {
             if(!jwtParser.isExpiredToken(refreshToken)) {

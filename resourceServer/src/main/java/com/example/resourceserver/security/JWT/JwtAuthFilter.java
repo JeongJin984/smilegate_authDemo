@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.log.LogMessage;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.event.InteractiveAuthenticationSuccessEvent;
 import org.springframework.security.core.Authentication;
@@ -18,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -27,21 +29,21 @@ import java.time.Instant;
 import static java.lang.Long.parseLong;
 
 public class JwtAuthFilter extends OncePerRequestFilter implements ApplicationEventPublisherAware {
-    private SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
+    private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
             .getContextHolderStrategy();
 
-    private SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
+    private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
-    private JwtAuthConverter jwtAuthConverter = new JwtAuthConverter();
-    private OAuth2TokenConverter oAuth2TokenConverter = new OAuth2TokenConverter();
+    private final JwtAuthConverter jwtAuthConverter = new JwtAuthConverter();
+    private final OAuth2TokenConverter oAuth2TokenConverter = new OAuth2TokenConverter();
 
     private ApplicationEventPublisher eventPublisher;
 
     private AuthenticationSuccessHandler successHandler;
 
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    private RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = new RestTemplate();
 
     public JwtAuthFilter(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
@@ -65,6 +67,7 @@ public class JwtAuthFilter extends OncePerRequestFilter implements ApplicationEv
         assert keycloackTokenExpireAt != null;
         assert loginPlatform != null;
         assert refreshToken != null;
+
         if(loginPlatform.equals("JWT")) {
             Authentication jwtAuthToken = jwtAuthConverter.convert(request);
             try {
@@ -123,7 +126,6 @@ public class JwtAuthFilter extends OncePerRequestFilter implements ApplicationEv
 
     private void onSuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
                                             Authentication authResult) {
-
     }
 
 

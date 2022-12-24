@@ -1,6 +1,7 @@
 package com.example.authserver.security;
 
 import com.example.authserver.data.repository.AccountInfoRepository;
+import com.example.authserver.security.logout.LogoutFilter;
 import com.example.authserver.security.oauth2.code.OAuth2CodeFilter;
 import com.example.authserver.security.oauth2.token.OAuth2TokenFilter;
 import com.example.authserver.security.usernamePw.BasicAuthFilter;
@@ -94,7 +95,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize ->
                         authorize
-                                .requestMatchers("/jwt/valid/", "/signup/", "/hello/").permitAll()
+                                .requestMatchers("/jwt/refresh/", "/signup/", "/hello/").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .csrf().disable()
@@ -105,7 +106,8 @@ public class SecurityConfig {
                 .and()
                 .addFilterAt(new BasicAuthFilter(authenticationManager, redisTemplate), RememberMeAuthenticationFilter.class)
                 .addFilterAfter(new OAuth2TokenFilter(redisTemplate), BasicAuthFilter.class)
-                .addFilterAfter(new OAuth2CodeFilter(redisTemplate), OAuth2TokenFilter.class);
+                .addFilterAfter(new LogoutFilter(redisTemplate), OAuth2TokenFilter.class)
+                .addFilterAfter(new OAuth2CodeFilter(redisTemplate), LogoutFilter.class);
         return http.build();
     }
 }

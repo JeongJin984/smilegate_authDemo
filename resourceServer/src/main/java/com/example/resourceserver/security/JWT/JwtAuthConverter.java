@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
 import java.util.*;
 
 import static com.example.resourceserver.common.JwtUtils.AUTHORITIES_KEY;
@@ -48,13 +49,20 @@ public class JwtAuthConverter implements AuthenticationConverter {
 
         String accessToken = "";
         String refreshToken = "";
+        Instant expireAt = null;
         for(Cookie cookie : cookies) {
             if(cookie.getName().equals("accessToken")) {
                 accessToken = cookie.getValue();
             } else if(cookie.getName().equals("refreshToken")) {
                 refreshToken = cookie.getValue();
+            } else if(cookie.getName().equals("expireAt")) {
+                expireAt = Instant.parse(cookie.getValue());
             }
         }
+
+        assert expireAt != null;
+        assert StringUtils.hasText(accessToken);
+        assert StringUtils.hasText(refreshToken);
 
         if(StringUtils.hasText(accessToken)) {
             try {
@@ -62,11 +70,12 @@ public class JwtAuthConverter implements AuthenticationConverter {
                 headers.add(HttpHeaders.AUTHORIZATION,  accessToken);
                 headers.add(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, refreshToken);
 
-                accessToken = (String) Objects.requireNonNull(restTemplate
-                                .exchange("http://localhost:8081/jwt/valid/", HttpMethod.GET, new HttpEntity<String>(headers), HashMap.class)
-                                .getBody())
-                        .get("accessToken");
-
+                if(expireAt.isAfter(Instant.now())) {
+                    accessToken = (String) Objects.requireNonNull(restTemplate
+                                    .exchange("http://localhost:8081/jwt/refresh/", HttpMethod.GET, new HttpEntity<String>(headers), HashMap.class)
+                                    .getBody())
+                            .get("accessToken");
+                }
                 Map<String, ?> body = new DefaultJwtParser()
                         .getBody(accessToken);
                 return new JwtAuthToken((String) body.get("aud"), List.of(), accessToken);

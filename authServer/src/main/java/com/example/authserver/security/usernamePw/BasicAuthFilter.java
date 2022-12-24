@@ -28,9 +28,8 @@ import org.springframework.util.Assert;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.Random;
 
 import static com.example.authserver.common.jwtUtils.Variables.accessTokenKey;
 import static com.example.authserver.common.jwtUtils.Variables.refreshTokenKey;
@@ -117,8 +116,8 @@ public class BasicAuthFilter extends OncePerRequestFilter {
         jwtBuilder.setPayload("iss", "sMilestone", "registered");
         jwtBuilder.setPayload("sub", authResult.getName(), "registered");
         jwtBuilder.setPayload("aud", authResult.getName(), "registered");
-        jwtBuilder.setPayload("exp", (LocalDateTime.now().plusSeconds(1L)).toString(), "registered");
-        jwtBuilder.setPayload("iat", LocalDateTime.now().toString(), "registered");
+        jwtBuilder.setPayload("exp", (Instant.now().plusSeconds(1L)).toString(), "registered");
+        jwtBuilder.setPayload("iat", Instant.now().toString(), "registered");
         jwtBuilder.setPayload("token_type", "accessToken", "public");
 
         Cookie accessTokenCookie = new Cookie("accessToken", jwtBuilder.compact());
@@ -132,8 +131,8 @@ public class BasicAuthFilter extends OncePerRequestFilter {
         jwtBuilder.setPayload("iss", "sMilestone", "registered");
         jwtBuilder.setPayload("sub", authResult.getName(), "registered");
         jwtBuilder.setPayload("aud", authResult.getName(), "registered");
-        jwtBuilder.setPayload("exp", (LocalDateTime.now().plusWeeks(5L)).toString(), "registered");
-        jwtBuilder.setPayload("iat", LocalDateTime.now().toString(), "registered");
+        jwtBuilder.setPayload("exp", (Instant.now().plusSeconds(3096000L)).toString(), "registered");
+        jwtBuilder.setPayload("iat", Instant.now().toString(), "registered");
         jwtBuilder.setPayload("token_type", "refreshToken", "public");
 
         Cookie refreshTokenCookie = new Cookie("refreshToken", jwtBuilder.compact());
@@ -146,7 +145,7 @@ public class BasicAuthFilter extends OncePerRequestFilter {
         loginUser.setSecure(false);
         loginUser.setHttpOnly(true);
 
-        Cookie expireAt = new Cookie("expireAt", (LocalDateTime.now().plusWeeks(5L)).toString());
+        Cookie expireAt = new Cookie("expireAt", (Instant.now().plusSeconds(3096000L)).toString());
         expireAt.setPath("/");
         expireAt.setSecure(false);
         expireAt.setHttpOnly(true);

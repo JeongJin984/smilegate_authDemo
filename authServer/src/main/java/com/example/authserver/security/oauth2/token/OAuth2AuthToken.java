@@ -17,6 +17,7 @@ public class OAuth2AuthToken extends AbstractAuthenticationToken {
 
     public OAuth2AuthToken(Collection<? extends GrantedAuthority> authorities, String accessToken, String expiresIn, String refreshToken, String tokenType, String idToken, String scope) {
         super(authorities);
+        super.setAuthenticated(true);
         this.accessToken = accessToken;
         this.expiresIn = expiresIn;
         this.refreshToken = refreshToken;

@@ -13,12 +13,10 @@ export default function Home() {
   const router = useRouter()
   const [cookies, setCookie] = useCookies();
   const [username, setUsername] = useState("")
-  const [message, setMessage] = useState("")
   const [password, setPassword] = useState("")
   const [passwordCheck, setPasswordCheck] = useState("")
 
   useEffect(() => {
-    /*
     console.log(cookies)
     if(cookies.platform) {
       axios.defaults.withCredentials = true
@@ -31,7 +29,6 @@ export default function Home() {
         setUsername("success")
       })
     }
-    */
   }, [cookies])
 
   const onSubmitLogin = (e) => {
@@ -55,16 +52,6 @@ export default function Home() {
 
   const onClickKeyCloack = (e) => {
     router.push("http://localhost:8081/login/oauth2/keycloack/")
-  }
-
-  const onClickHello = (e) => {
-    axios({
-      method: "get",
-      url: "http://localhost:8082/"
-    }).then(response => {
-      alert(response.data)
-      setMessage(response.data)
-    })
   }
 
   const onChangePassword = (e) => {
@@ -94,19 +81,19 @@ export default function Home() {
   }
 
   const onClickLogout = (e) => {
-
+    axios({
+      method: "get",
+      url: "http://localhost:8081/logout/"
+    }).then(response => {
+      setUsername("")
+    })
   }
 
   return (
     <div className={styles.container}>
       {
         username ?
-          message ? 
-          <div>
-            {message}
-            <Button onClick={onClickLogout}>LogOut</Button>
-          </div> :
-          <Button onClick={onClickHello}>Hello</Button>:
+          <Button onClick={onClickLogout}>LogOut</Button>:
           <div>
             <Form onSubmit={onSubmitLogin}>
               <Form.Group className="mb-3" controlId="formBasicUsername">
