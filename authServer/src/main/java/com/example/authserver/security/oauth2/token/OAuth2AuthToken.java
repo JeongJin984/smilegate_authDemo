@@ -8,12 +8,12 @@ import java.util.Collection;
 
 @Getter
 public class OAuth2AuthToken extends AbstractAuthenticationToken {
-    private String accessToken;
-    private String expiresIn;
-    private String refreshToken;
-    private String tokenType;
-    private String idToken;
-    private String scope;
+    private final String accessToken;
+    private final String expiresIn;
+    private final String refreshToken;
+    private final String tokenType;
+    private final String idToken;
+    private final String scope;
 
     public OAuth2AuthToken(Collection<? extends GrantedAuthority> authorities, String accessToken, String expiresIn, String refreshToken, String tokenType, String idToken, String scope) {
         super(authorities);

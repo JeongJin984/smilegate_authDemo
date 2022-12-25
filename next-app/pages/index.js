@@ -47,7 +47,9 @@ export default function Home() {
     }).then(response => {
       alert(response.data)
       setUsername("success")
-    })
+    }).catch(error => {
+      alert(error.response.data)
+    }) 
   }
 
   const onClickKeyCloack = (e) => {

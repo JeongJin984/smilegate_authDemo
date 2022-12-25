@@ -1,6 +1,7 @@
 package com.example.authserver.security.usernamePw;
 
 import com.example.authserver.common.DefaultJwtBuilder;
+import com.example.authserver.security.AbstractAuthFilter;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.FilterChain;
@@ -34,62 +35,22 @@ import java.time.LocalDateTime;
 import static com.example.authserver.common.jwtUtils.Variables.accessTokenKey;
 import static com.example.authserver.common.jwtUtils.Variables.refreshTokenKey;
 
-public class BasicAuthFilter extends OncePerRequestFilter {
-
-    private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
-            .getContextHolderStrategy();
-    BasicAuthConverter authenticationConverter = new BasicAuthConverter();
+public class BasicAuthFilter extends AbstractAuthFilter {
     private final AuthenticationManager authenticationManager;
-    private final SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
 
-    private final RequestMatcher requiresAuthenticationRequestMatcher;
-
-    public BasicAuthFilter(AuthenticationManager authenticationManager) {
-        Assert.notNull(authenticationManager, "authenticationManager cannot be null");
+    public BasicAuthFilter(AuthenticationManager authenticationManager, AuthenticationEntryPoint entryPoint) {
+        super(new BasicAuthConverter(), new AntPathRequestMatcher("/login/jwt/*"), entryPoint);
         this.authenticationManager = authenticationManager;
-        requiresAuthenticationRequestMatcher = new AntPathRequestMatcher("/login/jwt/*");
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-        if(!requiresAuthenticationRequestMatcher.matches(request)) {
-            doFilter(request,response,chain);
-            return;
-        }
-
-        try {
-            UsernamePasswordAuthenticationToken authRequest = this.authenticationConverter.convert(request);
-            if (authRequest == null) {
-                this.logger.trace("Did not process authentication request since failed to find "
-                        + "username and password in Basic Authorization header");
-                chain.doFilter(request, response);
-                return;
-            }
-            String username = authRequest.getName();
-            this.logger.trace(LogMessage.format("Found username '%s' in Basic Authorization header", username));
-            if (authenticationIsRequired(username)) {
-                Authentication authResult = this.authenticationManager.authenticate(authRequest);
-                SecurityContext context = this.securityContextHolderStrategy.createEmptyContext();
-                context.setAuthentication(authResult);
-                this.securityContextHolderStrategy.setContext(context);
-                if (this.logger.isDebugEnabled()) {
-                    this.logger.debug(LogMessage.format("Set SecurityContextHolder to %s", authResult));
-                }
-                this.securityContextRepository.saveContext(context, request, response);
-                onSuccessfulAuthentication(request, response, authResult);
-            }
-        }
-        catch (AuthenticationException ex) {
-            this.logger.debug("Failed to process authentication request", ex);
-            onUnsuccessfulAuthentication(request, response, ex);
-            return;
-        }
-
-        chain.doFilter(request, response);
+    protected Authentication authenticate(HttpServletRequest request, HttpServletResponse response, Authentication unAuthenticated) {
+        UsernamePasswordAuthenticationToken authenticated = (UsernamePasswordAuthenticationToken)unAuthenticated;
+        return authenticationManager.authenticate(authenticated);
     }
 
-    protected void onSuccessfulAuthentication(
-            HttpServletRequest request,
+    @Override
+    protected void setCookieWithTokenInfo(
             HttpServletResponse response,
             Authentication authResult
     ) throws IOException {
@@ -143,17 +104,5 @@ public class BasicAuthFilter extends OncePerRequestFilter {
         response.addCookie(refreshTokenCookie);
         response.addCookie(loginUser);
         response.addCookie(expireAt);
-    }
-
-    protected void onUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-                                                AuthenticationException failed) throws IOException {
-    }
-
-    protected boolean authenticationIsRequired(String username) {
-        Authentication existingAuth = this.securityContextHolderStrategy.getContext().getAuthentication();
-        if (existingAuth == null || !existingAuth.getName().equals(username) || !existingAuth.isAuthenticated()) {
-            return true;
-        }
-        return (existingAuth instanceof AnonymousAuthenticationToken);
     }
 }

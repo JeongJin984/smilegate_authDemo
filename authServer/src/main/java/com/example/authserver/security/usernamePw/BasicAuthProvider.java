@@ -1,22 +1,17 @@
 package com.example.authserver.security.usernamePw;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import com.example.authserver.security.AbstractAuthFilter;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.core.authority.mapping.NullAuthoritiesMapper;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
 
 public class BasicAuthProvider implements AuthenticationProvider {
     private final PasswordEncoder passwordEncoder;
@@ -29,21 +24,25 @@ public class BasicAuthProvider implements AuthenticationProvider {
     }
 
     @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        UserDetails userDetails = userDetailsService.loadUserByUsername(authentication.getName());
+    public Authentication authenticate(Authentication authentication) throws UsernameNotFoundException {
+        try {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(authentication.getName());
 
-        if(!passwordEncoder.matches(authentication.getCredentials().toString(), loadedUser.getPassword())) {
-            throw new InternalAuthenticationServiceException("Credential InCorrect");
+            if(!passwordEncoder.matches(authentication.getCredentials().toString(), userDetails.getPassword())) {
+                throw new BadCredentialsException("Credential InCorrect");
+            }
+
+            UsernamePasswordAuthenticationToken result = UsernamePasswordAuthenticationToken.authenticated(
+                    userDetails.getUsername(),
+                    authentication.getCredentials(),
+                    this.authoritiesMapper.mapAuthorities(userDetails.getAuthorities())
+            );
+            result.setDetails(authentication.getDetails());
+
+            return result;
+        } catch (UsernameNotFoundException usernameNotFoundException) {
+            throw new UsernameNotFoundException("incorrect username");
         }
-
-        UsernamePasswordAuthenticationToken result = UsernamePasswordAuthenticationToken.authenticated(
-                userDetails.getUsername(),
-                authentication.getCredentials(),
-                this.authoritiesMapper.mapAuthorities(userDetails.getAuthorities())
-        );
-        result.setDetails(authentication.getDetails());
-
-        return result;
     }
 
     @Override
