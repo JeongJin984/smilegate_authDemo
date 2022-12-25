@@ -5,15 +5,7 @@ import com.example.authserver.security.logout.LogoutFilter;
 import com.example.authserver.security.oauth2.code.OAuth2CodeFilter;
 import com.example.authserver.security.oauth2.token.OAuth2TokenFilter;
 import com.example.authserver.security.usernamePw.BasicAuthFilter;
-import com.example.authserver.security.usernamePw.BasicAuthProvider;
 import com.example.authserver.security.usernamePw.BasicUserDetailsService;
-import jakarta.persistence.Basic;
-import jakarta.servlet.Filter;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -22,30 +14,14 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
-import org.springframework.security.oauth2.client.web.AuthenticatedPrincipalOAuth2AuthorizedClientRepository;
-import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizationCodeGrantFilter;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.intercept.AuthorizationFilter;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.io.IOException;
 import java.util.*;
 
 @Configuration
@@ -104,10 +80,10 @@ public class SecurityConfig {
                 .rememberMe().disable()
                 .cors().configurationSource(corsConfigurationSource)
                 .and()
-                .addFilterAt(new BasicAuthFilter(authenticationManager, redisTemplate), RememberMeAuthenticationFilter.class)
-                .addFilterAfter(new OAuth2TokenFilter(redisTemplate), BasicAuthFilter.class)
+                .addFilterAt(new BasicAuthFilter(authenticationManager), RememberMeAuthenticationFilter.class)
+                .addFilterAfter(new OAuth2TokenFilter(), BasicAuthFilter.class)
                 .addFilterAfter(new LogoutFilter(redisTemplate), OAuth2TokenFilter.class)
-                .addFilterAfter(new OAuth2CodeFilter(redisTemplate), LogoutFilter.class);
+                .addFilterAfter(new OAuth2CodeFilter(), LogoutFilter.class);
         return http.build();
     }
 }

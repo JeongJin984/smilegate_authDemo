@@ -1,104 +1,53 @@
 package com.example.authserver.security.usernamePw;
 
-import com.example.authserver.security.AbstractAuthProvider;
-import org.springframework.security.authentication.*;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
+import org.springframework.security.core.authority.mapping.NullAuthoritiesMapper;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.util.Assert;
+import org.springframework.web.filter.OncePerRequestFilter;
 
-public class BasicAuthProvider extends AbstractAuthProvider {
+import java.io.IOException;
 
-    private static final String USER_NOT_FOUND_PASSWORD = "userNotFoundPassword";
+public class BasicAuthProvider implements AuthenticationProvider {
+    private final PasswordEncoder passwordEncoder;
+    private final UserDetailsService userDetailsService;
+    private final GrantedAuthoritiesMapper authoritiesMapper = new NullAuthoritiesMapper();
 
-    private PasswordEncoder passwordEncoder;
-
-    private volatile String userNotFoundEncodedPassword;
-
-    private UserDetailsService userDetailsService;
-
-    private UserDetailsPasswordService userDetailsPasswordService;
-
-    @Override
-    protected Authentication createSuccessAuthentication(
-            Object principal,
-            Authentication authentication,
-            UserDetails user
-    ) {
-        boolean upgradeEncoding =
-                this.userDetailsPasswordService != null && this.passwordEncoder.upgradeEncoding(user.getPassword());
-        if (upgradeEncoding) {
-            String presentedPassword = authentication.getCredentials().toString();
-            String newPassword = this.passwordEncoder.encode(presentedPassword);
-            user = this.userDetailsPasswordService.updatePassword(user, newPassword);
-        }
-        return super.createSuccessAuthentication(principal, authentication, user);
-    }
-
-    @Override
-    protected UserDetails retrieveUser(
-            String username,
-            UsernamePasswordAuthenticationToken authentication
-    ) throws AuthenticationException {
-        prepareTimingAttackProtection();
-        try {
-            UserDetails loadedUser = this.userDetailsService.loadUserByUsername(username);
-
-            if(!passwordEncoder.matches(authentication.getCredentials().toString(), loadedUser.getPassword())) {
-                throw new InternalAuthenticationServiceException("Credential InCorrect");
-            }
-
-            if (loadedUser == null) {
-                throw new InternalAuthenticationServiceException(
-                        "UserDetailsService returned null, which is an interface contract violation");
-            }
-            return loadedUser;
-        }
-        catch (UsernameNotFoundException ex) {
-            mitigateAgainstTimingAttack(authentication);
-            throw ex;
-        }
-        catch (InternalAuthenticationServiceException ex) {
-            throw ex;
-        }
-        catch (Exception ex) {
-            throw new InternalAuthenticationServiceException(ex.getMessage(), ex);
-        }
-    }
-
-    private void prepareTimingAttackProtection() {
-        if (this.userNotFoundEncodedPassword == null) {
-            this.userNotFoundEncodedPassword = this.passwordEncoder.encode(USER_NOT_FOUND_PASSWORD);
-        }
-    }
-
-    private void mitigateAgainstTimingAttack(UsernamePasswordAuthenticationToken authentication) {
-        if (authentication.getCredentials() != null) {
-            String presentedPassword = authentication.getCredentials().toString();
-            this.passwordEncoder.matches(presentedPassword, this.userNotFoundEncodedPassword);
-        }
-    }
-
-    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
-        Assert.notNull(passwordEncoder, "passwordEncoder cannot be null");
+    public BasicAuthProvider(PasswordEncoder passwordEncoder, UserDetailsService userDetailsService) {
         this.passwordEncoder = passwordEncoder;
-        this.userNotFoundEncodedPassword = null;
-    }
-
-    protected PasswordEncoder getPasswordEncoder() {
-        return this.passwordEncoder;
-    }
-
-    public void setUserDetailsService(UserDetailsService userDetailsService) {
         this.userDetailsService = userDetailsService;
     }
 
-    protected UserDetailsService getUserDetailsService() {
-        return this.userDetailsService;
+    @Override
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(authentication.getName());
+
+        if(!passwordEncoder.matches(authentication.getCredentials().toString(), loadedUser.getPassword())) {
+            throw new InternalAuthenticationServiceException("Credential InCorrect");
+        }
+
+        UsernamePasswordAuthenticationToken result = UsernamePasswordAuthenticationToken.authenticated(
+                userDetails.getUsername(),
+                authentication.getCredentials(),
+                this.authoritiesMapper.mapAuthorities(userDetails.getAuthorities())
+        );
+        result.setDetails(authentication.getDetails());
+
+        return result;
     }
 
-    public void setUserDetailsPasswordService(UserDetailsPasswordService userDetailsPasswordService) {
-        this.userDetailsPasswordService = userDetailsPasswordService;
+    @Override
+    public boolean supports(Class<?> authentication) {
+        return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
     }
 }

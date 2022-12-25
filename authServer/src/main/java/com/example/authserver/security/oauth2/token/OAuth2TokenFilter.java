@@ -8,12 +8,10 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.log.LogMessage;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -22,25 +20,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Map;
-
-import static java.lang.Long.parseLong;
 
 public class OAuth2TokenFilter extends OncePerRequestFilter {
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder
             .getContextHolderStrategy();
-    private AuthenticationEntryPoint authenticationEntryPoint;
     private final SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
-
     private final RequestMatcher requiresAuthenticationRequestMatcher;
-    private final RedisTemplate<String, Object> redisTemplate;
-
     private final OAuth2TokenConverter oAuth2TokenConverter = new OAuth2TokenConverter();
 
-    public OAuth2TokenFilter(RedisTemplate<String, Object> redisTemplate) {
+    public OAuth2TokenFilter() {
         this.requiresAuthenticationRequestMatcher = new AntPathRequestMatcher("/login/oauth2/code/keycloack");
-        this.redisTemplate = redisTemplate;
     }
 
     @Override

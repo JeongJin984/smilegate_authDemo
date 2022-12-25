@@ -40,18 +40,13 @@ public class BasicAuthFilter extends OncePerRequestFilter {
             .getContextHolderStrategy();
     BasicAuthConverter authenticationConverter = new BasicAuthConverter();
     private final AuthenticationManager authenticationManager;
-    private AuthenticationEntryPoint authenticationEntryPoint;
     private final SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
-    private final RedisTemplate<String, Object> redisTemplate;
 
     private final RequestMatcher requiresAuthenticationRequestMatcher;
-    private boolean ignoreFailure = false;
 
-    public BasicAuthFilter(AuthenticationManager authenticationManager ,RedisTemplate<String, Object> redisTemplate) {
+    public BasicAuthFilter(AuthenticationManager authenticationManager) {
         Assert.notNull(authenticationManager, "authenticationManager cannot be null");
         this.authenticationManager = authenticationManager;
-        this.ignoreFailure = true;
-        this.redisTemplate = redisTemplate;
         requiresAuthenticationRequestMatcher = new AntPathRequestMatcher("/login/jwt/*");
     }
 
@@ -87,13 +82,6 @@ public class BasicAuthFilter extends OncePerRequestFilter {
         catch (AuthenticationException ex) {
             this.logger.debug("Failed to process authentication request", ex);
             onUnsuccessfulAuthentication(request, response, ex);
-            if (this.ignoreFailure) {
-                chain.doFilter(request, response);
-            }
-            else {
-                // handle failure ( like adding unauthorized status, header)
-                this.authenticationEntryPoint.commence(request, response, ex);
-            }
             return;
         }
 

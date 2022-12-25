@@ -16,11 +16,9 @@ import java.util.Random;
 public class OAuth2CodeFilter extends OncePerRequestFilter {
 
     private final RequestMatcher requiresAuthenticationRequestMatcher;
-    private final RedisTemplate<String, Object> redisTemplate;
 
-    public OAuth2CodeFilter(RedisTemplate<String, Object> redisTemplate) {
+    public OAuth2CodeFilter() {
         this.requiresAuthenticationRequestMatcher = new AntPathRequestMatcher("/login/oauth2/keycloack/*");
-        this.redisTemplate = redisTemplate;
     }
 
     @Override

@@ -20,21 +20,13 @@ import org.springframework.util.Assert;
 
 public abstract class AbstractAuthProvider implements AuthenticationProvider, MessageSourceAware {
     protected final Log logger = LogFactory.getLog(getClass());
-
     protected MessageSourceAccessor messages = SpringSecurityMessageSource.getAccessor();
-
     private UserCache userCache  = new NullUserCache();
-
     private boolean forcePrincipalAsString = false;
-
     protected boolean hideUserNotFoundExceptions = true;
-
     private UserDetailsChecker preAuthenticationChecks = new DefaultPreAuthenticationChecks();
-
     private UserDetailsChecker postAuthenticationChecks = new DefaultPostAuthenticationChecks();
-
     private GrantedAuthoritiesMapper authoritiesMapper = new NullAuthoritiesMapper();
-
 
     @Override
     public void setMessageSource(MessageSource messageSource) {
