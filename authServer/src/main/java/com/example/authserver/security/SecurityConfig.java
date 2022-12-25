@@ -110,6 +110,7 @@ public class SecurityConfig {
                 .and()
                 .exceptionHandling().authenticationEntryPoint(authenticationEntryPoint)
                 .and()
+                //들어가있으면 작동이 안된다 왤까?
                 .addFilterAt(new BasicAuthFilter(authenticationManager, authenticationEntryPoint), RememberMeAuthenticationFilter.class)
                 .addFilterAfter(new OAuth2TokenFilter(authenticationEntryPoint), BasicAuthFilter.class)
                 .addFilterAfter(new LogoutFilter(redisTemplate), OAuth2TokenFilter.class)
